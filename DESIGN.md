@@ -6,6 +6,11 @@ flat, dark-first desktop look with one accent colour. Hand this file to a
 designer, a developer or an AI coding assistant and ask for a UI that follows
 it.
 
+It covers web views (HTML/CSS) and native Qt apps (PyQt / PySide). The same
+tokens and rules apply to both. [Flows and feedback](#flows-and-feedback)
+covers tools that run long jobs, and [Building it in Qt](#building-it-in-qt)
+has the Qt stylesheet and painted widgets.
+
 ![Home view](images/home.png)
 
 ![Settings view](images/settings.png)
@@ -286,6 +291,183 @@ imagery is used. Without artwork it collapses to a plain title and chips.
 Invisible at rest, faint while the pointer is over the scrolling area, clearer
 when hovered. No arrow buttons, no track.
 
+### Toggle switch
+
+For on/off settings, use a switch instead of a checkbox. It is 36×20px and
+fully round. The track fades from `--track` to `--accent`. The knob is
+(height − 6)px, inset 3px, and fades from `--muted` to `--bg` as it slides,
+over 0.12s. A disabled switch is drawn at 35% opacity. Keep checkboxes for
+lists of items you can pick.
+
+### Segmented control
+
+Use it for a short choice of two to four options, side by side. The track is
+one step darker than the page (`#1b1b1e`), with a 10px radius and 3px
+padding. Each segment is a ghost button (5px 14px, 8px radius), and the
+chosen one uses `--active`. A segment can carry a count: "Saved files ·
+1,000".
+
+### Distribution bar
+
+This shows how something is split, for example 20% / 30% / rest. It is an
+8px bar with a 4px radius and a `--track` background, filled left to right
+with one colour per part. Parts are separated by a 2px gap line in `--raise`.
+Put the legend under the bar as faint text, one colour dot per part.
+
+## Flows and feedback
+
+These patterns are for tools that start long jobs: batch runs, sync, export.
+The rule behind all of them: **before the start, the user knows what will
+happen, how long it takes and what it costs. While it runs, they can see
+each item. At the end, the summary is honest.**
+
+### Stepped dialog
+
+Use this for a job that needs more than one screen of choices.
+
+- **Frame:** a frameless, modal window on `--raise`, with a 1px `--line`
+  border and a 12px radius, at least 820px wide.
+- **Header:** the title on the left (15px, weight 600). Next to it, a muted
+  breadcrumb of what was picked, such as "Saved files → Upload to the
+  server". A close button sits on the right, and a divider runs below.
+- **Step list:** a 210px column on the left, like the settings categories.
+  It uses nav buttons with 16px icons, the current one in `--active`. Steps
+  you have already reached can be clicked. A 1px vertical divider separates
+  it from the content.
+- **Content:** a faint "Step 1 of 3" (12px, weight 600), then the page title
+  (26px) and a one-line subtitle.
+- **Footer:** a divider, then a message area on the left that grows. On the
+  right, ghost Cancel and Back buttons and one primary button. The primary
+  button says "Next" until the last step, where it names the job, such as
+  "Start run".
+- **Keys:** number keys pick the options on step 1, and Enter presses the
+  primary button.
+
+### Ask questions, then say what will happen
+
+Do not show a long list of similar options. Ask one or two short questions,
+each with a segmented control ("Files: New · Saved", then "Action: Upload ·
+Check"). Below them, after a divider and an eyebrow label such as "THIS RUN",
+write one plain sentence that says exactly what will happen:
+
+> 500 of your 1,000 files that changed in the last 30 days upload to the
+> server, one at a time in random order, spread over 30 minutes.
+
+Update the sentence on every change, and bold the key numbers in it.
+
+### Show time and cost before the start
+
+- Show a "Takes about" row in mono with "≈": "≈ 2 h 38 min".
+- Show a "This run costs" row with the amount right-aligned in mono.
+- If the user asks for something that cannot fit, explain why in the summary
+  instead of failing later: "Each upload takes about 3 s, so 500 take at
+  least 25 min."
+- Write rough durations in one or two units only: "45 s", "12 min",
+  "1 h 46 min", "2 days 3 h".
+
+### Number inputs people can read
+
+- **Durations:** a number and a unit picker (seconds / minutes / hours), not
+  raw seconds. When loading a saved value, pick the largest unit that keeps it
+  a whole number, so 1800 s shows as 30 minutes.
+- **Part of a whole:** "How many [500] of 1,000 files". The total sits in
+  muted text beside the box, and the box's range is capped at the total. If
+  the same number appears on two steps, it is one value: changing one changes
+  the other.
+- **Ranges:** "[30] to [120] seconds". Raising the minimum past the maximum
+  moves the maximum with it.
+- Spin boxes and dropdowns ignore the mouse wheel unless they have focus, so
+  scrolling the page never changes a value.
+
+### Off keeps the numbers
+
+An optional feature (a delay, a limit) gets a switch in front of its fields.
+Switching it off hides the fields but keeps their values for next time.
+Switching it on with empty fields fills in a sensible default. A muted note
+beside the switch says what the current state means: "Off: each file
+uploads right away" or "random per file". On a settings row, the help line
+can show the state: `--good` when on, `--warn` when off matters.
+
+### Look it up as it is typed
+
+For a field that names something real (a profile, an address, a file), look
+it up 600ms after typing stops. When it is found, replace the field with a
+chip: a 36px round picture (the first letter on `--hover` if there is no
+picture), the name at weight 600, a faint line such as "Ab12…xY9z · 1,204
+followers", and a 32px pencil button that brings the field back. If the
+lookup fails, show one line in `--bad` under the field.
+
+### Save state in settings
+
+Settings save on a button, never on every keystroke. The page header holds
+the title and subtitle on the left. On the right are a status text, an
+outline "Reload" button and a primary "Save changes" button.
+
+| State | Status text | Tone |
+|---|---|---|
+| Nothing changed | (hidden), Save disabled | — |
+| Edited | "Unsaved changes" | `--muted` |
+| Problems | "2 issues to review"; a click jumps to the first, the tooltip lists all | `--warn` |
+| Just saved | "All changes saved" for about 2s | `--good` |
+
+Before leaving a page with unsaved changes, ask whether to save or discard
+them.
+
+### Live run list
+
+While a job runs, show one row per item, newest on top, with a divider
+between rows:
+
+- On the left, a 30px round avatar (with a first-letter fallback). Next to
+  it, the name at weight 600 and a faint short id.
+- In the middle, a 150px column with the current step ("Uploading…") above a
+  **step track**. The track is one 22×4px segment per step with 4px gaps and
+  a 2px radius. Done steps are `--good`, the current step is `--text`, a
+  failed step is `--bad`, and steps still to come are `--active`. The
+  tooltip lists the steps: "Read → Check → Upload → Verify".
+- On the right, the result, right-aligned: "Done" or "Done · verifies in 85
+  s" in `--good`, or the short error in `--bad`.
+- When the list is empty, show one centred muted line: "Items show here
+  once you start a run."
+
+Above the list, show a stats row: flat stats, each with a status dot, a
+label and a 26px number. Total uses `--win`, Completed `--good`, Failed
+`--bad` and In progress `--warn`. Use tabs ("Items · Log") to switch
+between the list and the raw log.
+
+### Start, stop, and the end line
+
+- The primary "Start run" button turns into an outline `--bad` "Stop" while
+  the job runs. Stop asks for confirmation, then the status shows
+  "Stopping…" in `--warn` while the items already in hand finish.
+- The sidebar footer shows the app state: a status dot and "Idle" (faint),
+  "Running" (`--good`) or "Stopping…" (`--warn`). Below it is a faint line
+  with the version and the config file.
+- End with one honest line, joined with " · ": "uploaded 12/80 · 3 failed ·
+  65 not done (stopped)". Items that were never tried are "not done", not
+  failures.
+- If the app was closed mid-job and left something to clean up, offer to
+  finish it on the next start, with "Do it now" and "Later" buttons.
+
+### Errors
+
+- Rewrite errors in plain words before showing them. "HTTP 429" becomes
+  "The server is limiting requests from this connection. Wait a minute and
+  start again." Keep the raw text in the log file.
+- **Error note:** a 440px note in the bottom-right corner, 30px from the
+  edges, on `--raise` with a 1px border and a 10px radius. It has an 8px
+  `--bad` dot, a title at weight 600, the message in selectable 12px text,
+  and two ghost buttons: "Logs" (opens the log folder) and ✕. It stays about
+  20s, and while the pointer is over it, it stays. This is separate from the
+  one-line info toast.
+
+### Secrets
+
+Show a key or password field masked, with a ghost "Show" / "Hide" toggle
+next to it. The placeholder says where the secret goes, such as "kept in
+memory for this run only". Never write a secret into a settings file or a
+log.
+
 ## Motion
 
 - Colour and opacity changes: 0.12s.
@@ -300,6 +482,13 @@ when hovered. No arrow buttons, no track.
 - Helper text is one short plain sentence under the label.
 - Join metadata with " · ". Put numbers, times and paths in mono.
 - Empty states are a centred title and one line on what to do next.
+- Labels are short questions or nouns ("How many", "At the same time",
+  "Takes about"). The helper line under each one says what it is for ("Of the
+  files above").
+- Say what will happen in a sentence, not with a table of flags. Say what a
+  job did in one honest line.
+- Write a shortened id with an ellipsis in the middle, such as "Ab12…xY9z".
+  Write counts with thousands separators, such as "1,000".
 
 ## Do and don't
 
@@ -313,6 +502,10 @@ when hovered. No arrow buttons, no track.
 | Use shadows only on floating surfaces | Put shadows or gradients on page content (the primary button fade is the one exception) |
 | Use system fonts and outline icons | Add web fonts, emoji or filled icon sets |
 | Use a boxed panel only for real emphasis, and sparingly | Box things by default |
+| Show time, cost and a plain summary before a job starts | Find out what it does after pressing Start |
+| Let people type time as a number and a unit | Ask for raw seconds |
+| Count stopped items as "not done" | Report items that were never tried as failed |
+| Ignore the mouse wheel on unfocused number boxes | Let page scrolling change values |
 
 ## Starter page
 
@@ -354,12 +547,174 @@ body { margin: 0; height: 100vh; display: flex; overflow: hidden;
 .col { max-width: 1040px; margin: 0 auto; padding: 6px 36px 80px; }
 ```
 
+## Building it in Qt
+
+The same look works in a native PyQt or PySide app. Put the tokens in one
+stylesheet (QSS) applied to the `QApplication`, and target widgets by
+`objectName` (`#PrimaryButton`, `#RowHelp`). For states, use a dynamic
+property such as `[state="ok"]`. After changing it, re-polish the widget
+(`w.style().unpolish(w); w.style().polish(w)`), or the new style will not
+show.
+
+### Window
+
+- Make the window frameless (`Qt.FramelessWindowHint` and
+  `WA_TranslucentBackground`) with an inner `#WindowFrame` on `--bg`, a 1px
+  `--line` border and a 10px radius. When maximized, set the frame's
+  `maximized` property and drop the radius and border.
+- **Title bar:** 50px tall, transparent, and draggable. Double-clicking it
+  maximizes the window. It holds a 20px logo and the app name at weight 600.
+- **Window buttons:** 46×32px, drawn with `QPainter` using a 1.4px
+  round-capped pen. Hover fills `--hover`; for Close only, hover fills
+  `#c42b1c`.
+- Add an invisible 18px `QSizeGrip` in the bottom-right corner so the
+  frameless window can still be resized.
+- **Sidebar for a tool app** (one with no item list): 216px wide. The main
+  pages go at the top. After a stretch come Settings and then the status
+  footer, which has a top divider.
+
+### Type in Qt
+
+- Qt draws `px` sizes slightly smaller than a browser. Use 14px for body
+  text, 13px for helper text and 12px for captions.
+- `font-weight: 600` is unreliable with Segoe UI in QSS. Use
+  `font-family: "Segoe UI Semibold"; font-weight: normal;` for every 600
+  style.
+- Mono text (logs, amounts, times) uses `"Cascadia Mono", "Consolas",
+  monospace` at 13px.
+
+### Stylesheet core
+
+```css
+* { font-family: "Segoe UI", sans-serif; font-size: 14px; color: #ecebe7; outline: none; }
+
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
+    background: transparent; border: 1px solid #2e2e33; border-radius: 8px;
+    padding: 6px 10px; min-height: 20px;
+    selection-background-color: #5ed082; selection-color: #0b1a10;
+}
+QLineEdit:hover, QSpinBox:hover, QComboBox:hover { border-color: #3a3a40; }
+QLineEdit:focus, QSpinBox:focus, QComboBox:focus { border-color: #5ed082; }
+QLineEdit[invalid="true"] { border-color: #e84057; }
+QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled { color: #6c6b67; }
+
+#PrimaryButton {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0.15, stop:0 #a8c858, stop:0.7 #5ed082);
+    color: #0b1a10; border: none; border-radius: 8px; padding: 7px 14px;
+    font-family: "Segoe UI Semibold"; font-weight: normal;
+}
+#PrimaryButton:hover { background: qlineargradient(x1:0, y1:0, x2:1, y2:0.15, stop:0 #b5d366, stop:0.7 #6ddb90); }
+#PrimaryButton:disabled { background: #2a2a2e; color: #6c6b67; }
+#SecondaryButton { background: transparent; border: 1px solid #2e2e33; border-radius: 8px; padding: 6px 12px; }
+#SecondaryButton:hover { background: #2a2a2e; border-color: #3a3a40; }
+#DangerButton { background: transparent; color: #e84057; border: 1px solid #2e2e33; border-radius: 8px; padding: 6px 14px; }
+#GhostButton { background: transparent; border: none; border-radius: 8px; color: #9b9a95; padding: 6px 10px; font-size: 13px; }
+#GhostButton:hover { background: #2a2a2e; color: #ecebe7; }
+
+#NavButton { background: transparent; border: none; border-radius: 8px; text-align: left;
+    padding: 9px 12px; font-size: 15px; }
+#NavButton:hover { background: #2a2a2e; }
+#NavButton:checked { background: #323236; }
+
+#SettingRow { background: transparent; }            /* rows stay flat */
+#RowLabel { font-family: "Segoe UI Semibold"; }
+#RowHelp { color: #6c6b67; font-size: 13px; }
+#Divider { background: #2e2e33; min-height: 1px; max-height: 1px; border: none; }
+
+QProgressBar { background: #3a3a40; border: none; border-radius: 2px; min-height: 4px; max-height: 4px; }
+QProgressBar::chunk { background: #5ed082; border-radius: 2px; }
+
+QScrollArea { background: transparent; border: none; }
+QScrollArea > QWidget > QWidget { background: transparent; }
+QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
+QScrollBar::handle:vertical { background: rgba(236,235,231,30); border-radius: 4px; min-height: 40px; }
+QScrollBar::handle:vertical:hover { background: rgba(236,235,231,80); }
+QScrollBar::add-line, QScrollBar::sub-line { height: 0; width: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: none; }
+
+QMenu { background: #232326; border: 1px solid #2e2e33; border-radius: 8px; padding: 4px; }
+QMenu::item { padding: 6px 14px; border-radius: 6px; font-size: 13px; }
+QMenu::item:selected { background: #323236; }
+QToolTip { background: #2a2a2e; border: 1px solid #3a3a40; border-radius: 6px; padding: 6px 8px; }
+```
+
+### Things QSS cannot draw
+
+- **Checkmark and arrows:** QSS cannot draw an icon. Paint the check
+  (`#0b1a10`, 4.5px round pen on a 36×36 pixmap) and the spin box and
+  dropdown chevrons (`--muted`) once at start-up. Save them as PNGs in the
+  temp folder and put their paths into the stylesheet's `image: url(...)`.
+- **Dropdown popup:** give the combo a `QListView`. Make the popup window
+  frameless with no shadow, on `--raise` with a 1px border. Make the items
+  28px tall with an 8px radius, and use `combobox-popup: 0` so it opens as a
+  list.
+- **Toggle switch:** a `QCheckBox` subclass that paints itself:
+
+```python
+class ToggleSwitch(QCheckBox):
+    def __init__(self):
+        super().__init__()
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFixedSize(36, 20)
+        self._pos = 0.0
+        self._anim = QVariantAnimation(self, duration=120)
+        self._anim.valueChanged.connect(lambda v: (setattr(self, "_pos", float(v)), self.update()))
+        self.toggled.connect(lambda on: (self._anim.stop(), self._anim.setStartValue(self._pos),
+                                         self._anim.setEndValue(1.0 if on else 0.0), self._anim.start()))
+
+    def showEvent(self, e):
+        self._pos = 1.0 if self.isChecked() else 0.0
+        super().showEvent(e)
+
+    def hitButton(self, pos):
+        return self.rect().contains(pos)
+
+    @staticmethod
+    def _mix(a, b, t):
+        a, b = QColor(a), QColor(b)
+        return QColor(*(int(x + (y - x) * t) for x, y in
+                        ((a.red(), b.red()), (a.green(), b.green()), (a.blue(), b.blue()))))
+
+    def paintEvent(self, _):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        if not self.isEnabled():
+            p.setOpacity(0.35)
+        w, h, t = self.width(), self.height(), self._pos
+        p.setPen(Qt.NoPen)
+        p.setBrush(self._mix("#3a3a40", "#5ed082", t))   # --track -> --accent
+        p.drawRoundedRect(QRectF(0, 0, w, h), h / 2, h / 2)
+        d = h - 6
+        p.setBrush(self._mix("#9b9a95", "#1d1d1f", t))   # --muted -> --bg
+        p.drawEllipse(QRectF(3 + (w - 6 - d) * t, 3, d, d))
+```
+
+- **Round avatars:** draw at 3× size into a pixmap clipped by an ellipse,
+  then call `setDevicePixelRatio(3)` so they stay sharp. With no picture,
+  draw the first letter on `--hover`.
+- **Step track and distribution bar:** paint them with `QPainter` too (see
+  [Live run list](#live-run-list) and [Distribution bar](#distribution-bar)).
+- **No-wheel inputs:** subclass `QSpinBox`, `QDoubleSpinBox` and `QComboBox`.
+  Give them `Qt.StrongFocus`, and in `wheelEvent` call `e.ignore()` unless the
+  widget has focus.
+- **Status dot:** a fixed-size `QLabel` with
+  `background-color: <colour>; border-radius: <size/2>px`.
+
+### Long work off the UI thread
+
+Run every network call and job in a `QThread` and send progress back with
+signals. The window never freezes, and Stop sets a flag the worker checks
+between items, including while it waits.
+
 ## Prompt for an AI assistant
 
 > Build this UI following DESIGN.md. Use its colour tokens and type scale
 > exactly. Keep content flat on the page background with divider lines, not
 > cards. Use ghost buttons, one accent-filled primary action per screen,
 > system fonts, 16px outline icons, and shadows only on floating menus.
+> Before a job starts, show a plain summary of what it will do, how long it
+> takes and what it costs. While it runs, show each item with a step track.
+> In Qt, use the stylesheet and painted widgets from "Building it in Qt".
 
 ## Reference
 
