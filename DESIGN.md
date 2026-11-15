@@ -15,9 +15,6 @@ has the Qt stylesheet and painted widgets.
 
 ![Settings view](images/settings.png)
 
-<sub>The screenshots show an earlier gold accent. The layout is the same; the
-current accent is the green in the tokens below.</sub>
-
 ## The idea in five rules
 
 1. **Flat, not boxed.** Content sits directly on the page background. Rows are
