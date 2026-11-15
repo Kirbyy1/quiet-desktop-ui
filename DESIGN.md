@@ -8,8 +8,9 @@ it.
 
 It covers web views (HTML/CSS) and native Qt apps (PyQt / PySide). The same
 tokens and rules apply to both. [Flows and feedback](#flows-and-feedback)
-covers tools that run long jobs, and [Building it in Qt](#building-it-in-qt)
-has the Qt stylesheet and painted widgets.
+covers tools that run long jobs. For Qt there is a ready-made kit,
+[`qt/quiet_ui.py`](qt/quiet_ui.py): copy it into the app instead of
+rebuilding the widgets ([Copy the kit](#copy-the-kit)).
 
 ![Home view](images/home.png)
 
@@ -322,6 +323,8 @@ each item. At the end, the summary is honest.**
 
 Use this for a job that needs more than one screen of choices.
 
+![Stepped dialog, step 1](images/step-dialog.png)
+
 - **Frame:** a frameless, modal window on `--raise`, with a 1px `--line`
   border and a 12px radius, at least 820px wide.
 - **Header:** the title on the left (15px, weight 600). Next to it, a muted
@@ -394,6 +397,8 @@ picture), the name at weight 600, a faint line such as "Ab12…xY9z · 1,204
 followers", and a 32px pencil button that brings the field back. If the
 lookup fails, show one line in `--bad` under the field.
 
+![Details step with a found destination and the time estimate](images/step-dialog-details.png)
+
 ### Save state in settings
 
 Settings save on a button, never on every keystroke. The page header holds
@@ -410,6 +415,8 @@ outline "Reload" button and a primary "Save changes" button.
 Before leaving a page with unsaved changes, ask whether to save or discard
 them.
 
+![Settings: categories on the left, flat rows, the save state in the header](images/window-settings.png)
+
 ### Live run list
 
 While a job runs, show one row per item, newest on top, with a divider
@@ -422,8 +429,10 @@ between rows:
   a 2px radius. Done steps are `--good`, the current step is `--text`, a
   failed step is `--bad`, and steps still to come are `--active`. The
   tooltip lists the steps: "Read → Check → Upload → Verify".
-- On the right, the result, right-aligned: "Done" or "Done · verifies in 85
-  s" in `--good`, or the short error in `--bad`.
+- On the right, the result, right-aligned in a fixed 210px column so every
+  row's track lines up: "Done" or "Done · verifies in 85 s" in `--good`, or
+  the short error in `--bad`. A longer error is cut with "…", and the full
+  text goes in the tooltip.
 - When the list is empty, show one centred muted line: "Items show here
   once you start a run."
 
@@ -431,6 +440,8 @@ Above the list, show a stats row: flat stats, each with a status dot, a
 label and a 26px number. Total uses `--win`, Completed `--good`, Failed
 `--bad` and In progress `--warn`. Use tabs ("Items · Log") to switch
 between the list and the raw log.
+
+![A run in progress: stats, progress bar, and one row per item with its step track](images/window-run.png)
 
 ### Start, stop, and the end line
 
@@ -457,6 +468,8 @@ between the list and the raw log.
   and two ghost buttons: "Logs" (opens the log folder) and ✕. It stays about
   20s, and while the pointer is over it, it stays. This is separate from the
   one-line info toast.
+
+![Error note in the bottom-right corner](images/error-note.png)
 
 ### Secrets
 
@@ -546,12 +559,95 @@ body { margin: 0; height: 100vh; display: flex; overflow: hidden;
 
 ## Building it in Qt
 
-The same look works in a native PyQt or PySide app. Put the tokens in one
-stylesheet (QSS) applied to the `QApplication`, and target widgets by
-`objectName` (`#PrimaryButton`, `#RowHelp`). For states, use a dynamic
-property such as `[state="ok"]`. After changing it, re-polish the widget
-(`w.style().unpolish(w); w.style().polish(w)`), or the new style will not
-show.
+### Copy the kit
+
+[`qt/quiet_ui.py`](qt/quiet_ui.py) is the whole look as one module: the
+stylesheet, the painted widgets and every pattern in
+[Flows and feedback](#flows-and-feedback). It works with PySide6 or PyQt5.
+
+1. Copy `qt/quiet_ui.py` into the app **as it is**. Do not rewrite or
+   "simplify" its widgets. That is how the popup and the rest come out
+   exactly like the screenshots.
+2. Build the pages from its widgets. Change colours only in `TOKENS`, and
+   swap `app_mark()` for the app's logo.
+3. Run [`qt/demo.py`](qt/demo.py) to see every widget working, and
+   [`qt/test_quiet_ui.py`](qt/test_quiet_ui.py) to check it still behaves.
+
+| Need | Use |
+|---|---|
+| Window with title bar, sidebar and pages | `make_app()`, `QuietWindow`, `add_page()`, `Page`, `set_status()` |
+| Settings page | `CategoryView`, `SettingsSection.add_row()`, `SaveState` |
+| Popup set up in steps | `StepDialog.add_step()`, `form_grid()`, `form_label()`, `detail_grid()`, `summary_block()`, `OptionList` |
+| Choices | `Segmented`, `Segmented(..., tabs=True)`, `ToggleSwitch`, `NoWheelComboBox` |
+| Numbers | `NoWheelSpinBox`, `NoWheelDoubleSpinBox`, `DurationInput`, `CountOf`, `RangeInput` |
+| A field that is looked up | `LookupField` (shows a `Chip` once found) |
+| A running job | `Stat`, `stats_row()`, `ItemList`, `ItemRow.set_progress()`, `log_view()`, `QProgressBar` |
+| Errors | `QuietWindow.show_error()` (an `ErrorNote`) |
+| Buttons | `button(text, "primary" / "secondary" / "danger" / "ghost", icon_kind)`, `set_button_kind()` |
+| Text | `label(text, kind)` with kinds such as `PageTitle`, `RowLabel`, `RowHelp`, `Note`, `MonoValue`, `Eyebrow`, `MetaText` |
+| Small helpers | `icon()`, `set_state()`, `rough_duration()`, `short_id()`, `DistributionBar`, `legend()`, `run_dialog()` |
+
+```python
+from quiet_ui import (CategoryView, NoWheelSpinBox, Page, QuietWindow, QVBoxLayout, QWidget,
+                      SaveState, Segmented, SettingsSection, StepDialog, button, form_grid,
+                      form_label, make_app, run_app, run_dialog, summary_block)
+
+app = make_app()
+win = QuietWindow("My app")
+
+run = Page("Run", "Upload saved files to the server.")
+start = run.add_action(button("Start run", "primary", "play"))
+win.add_page("Run", "play", run)
+
+settings = Page("Settings", "Changes are saved to settings.ini.")
+save = button("Save changes", "primary")
+state = SaveState(save)                     # "Unsaved changes", issues, "All changes saved"
+settings.add_action(state)
+settings.add_action(save)
+uploads = SettingsSection("Uploads", "Where files go and how many at once")
+workers = NoWheelSpinBox(1, 64, 4)
+uploads.add_row("At the same time", "Files uploading at once", workers)
+workers.valueChanged.connect(lambda _v: state.set_dirty(True))
+save.clicked.connect(lambda _=False: state.flash_saved())
+categories = CategoryView()
+categories.add("General", "sliders", [uploads])
+settings.body.addWidget(categories)
+win.add_page("Settings", "sliders", settings, bottom=True)
+
+
+def start_run() -> None:
+    dialog = StepDialog("Start run", finish_text="Start run", parent=win)
+    page = QWidget()
+    lay = QVBoxLayout(page)
+    lay.setContentsMargins(0, 0, 0, 0)
+    grid = form_grid()
+    grid.addWidget(form_label("Action"), 0, 0)
+    grid.addWidget(Segmented(["Upload", "Check only"]), 0, 1)
+    lay.addLayout(grid)
+    block, summary = summary_block("THIS RUN")
+    summary.setText("<b>500</b> of your <b>1,000</b> files upload to the server.")
+    lay.addWidget(block)
+    lay.addStretch()
+    dialog.add_step("What to do", page, "Start a run", "What should this run do?", "play")
+    if run_dialog(dialog):
+        win.set_status("Running", "good")
+
+
+start.clicked.connect(lambda _=False: start_run())
+win.show()
+run_app(app)
+```
+
+The rest of this section explains how the kit is built. Read it when you
+change the kit, not before using it.
+
+### How the kit styles Qt
+
+Put the tokens in one stylesheet (QSS) applied to the `QApplication`, and
+target widgets by `objectName` (`#PrimaryButton`, `#RowHelp`). For states,
+use a dynamic property such as `[state="ok"]`. After changing it, re-polish
+the widget (`w.style().unpolish(w); w.style().polish(w)`, which is
+`set_state()` in the kit), or the new style will not show.
 
 ### Window
 
@@ -579,8 +675,12 @@ show.
   style.
 - Mono text (logs, amounts, times) uses `"Cascadia Mono", "Consolas",
   monospace` at 13px.
+- Off Windows, the kit uses `system-ui` with `font-weight: 600` instead.
 
 ### Stylesheet core
+
+`stylesheet()` in the kit holds the full version. This is the core, for
+reference:
 
 ```css
 * { font-family: "Segoe UI", sans-serif; font-size: 14px; color: #ecebe7; outline: none; }
@@ -645,47 +745,8 @@ QToolTip { background: #2a2a2e; border: 1px solid #3a3a40; border-radius: 6px; p
   frameless with no shadow, on `--raise` with a 1px border. Make the items
   28px tall with an 8px radius, and use `combobox-popup: 0` so it opens as a
   list.
-- **Toggle switch:** a `QCheckBox` subclass that paints itself:
-
-```python
-class ToggleSwitch(QCheckBox):
-    def __init__(self):
-        super().__init__()
-        self.setCursor(Qt.PointingHandCursor)
-        self.setFixedSize(36, 20)
-        self._pos = 0.0
-        self._anim = QVariantAnimation(self, duration=120)
-        self._anim.valueChanged.connect(lambda v: (setattr(self, "_pos", float(v)), self.update()))
-        self.toggled.connect(lambda on: (self._anim.stop(), self._anim.setStartValue(self._pos),
-                                         self._anim.setEndValue(1.0 if on else 0.0), self._anim.start()))
-
-    def showEvent(self, e):
-        self._pos = 1.0 if self.isChecked() else 0.0
-        super().showEvent(e)
-
-    def hitButton(self, pos):
-        return self.rect().contains(pos)
-
-    @staticmethod
-    def _mix(a, b, t):
-        a, b = QColor(a), QColor(b)
-        return QColor(*(int(x + (y - x) * t) for x, y in
-                        ((a.red(), b.red()), (a.green(), b.green()), (a.blue(), b.blue()))))
-
-    def paintEvent(self, _):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
-        if not self.isEnabled():
-            p.setOpacity(0.35)
-        w, h, t = self.width(), self.height(), self._pos
-        p.setPen(Qt.NoPen)
-        p.setBrush(self._mix("#3a3a40", "#5ed082", t))   # --track -> --accent
-        p.drawRoundedRect(QRectF(0, 0, w, h), h / 2, h / 2)
-        d = h - 6
-        p.setBrush(self._mix("#9b9a95", "#1d1d1f", t))   # --muted -> --bg
-        p.drawEllipse(QRectF(3 + (w - 6 - d) * t, 3, d, d))
-```
-
+- **Toggle switch:** a `QCheckBox` subclass that paints its track and knob
+  and animates between them over 0.12s (`ToggleSwitch`).
 - **Round avatars:** draw at 3× size into a pixmap clipped by an ellipse,
   then call `setDevicePixelRatio(3)` so they stay sharp. With no picture,
   draw the first letter on `--hover`.
@@ -696,6 +757,12 @@ class ToggleSwitch(QCheckBox):
   widget has focus.
 - **Status dot:** a fixed-size `QLabel` with
   `background-color: <colour>; border-radius: <size/2>px`.
+- **Focus between steps:** when `StepDialog` changes step, focus moves to
+  the primary button first. Otherwise it falls into the first field of the
+  new step and leaves that field's text selected.
+- **Error note height:** a word-wrapped label inside a floating frame needs
+  `heightForWidth()` to size it. `adjustSize()` alone cuts the text to one
+  line.
 
 ### Long work off the UI thread
 
@@ -711,10 +778,17 @@ between items, including while it waits.
 > system fonts, 16px outline icons, and shadows only on floating menus.
 > Before a job starts, show a plain summary of what it will do, how long it
 > takes and what it costs. While it runs, show each item with a step track.
-> In Qt, use the stylesheet and painted widgets from "Building it in Qt".
+> For a Qt app, copy qt/quiet_ui.py into the project unchanged and build
+> every page, dialog and popup from its widgets (QuietWindow, Page,
+> SettingsSection, StepDialog, ItemList, ErrorNote). Do not restyle or
+> rewrite them. The result should match the screenshots in images/.
 
 ## Reference
 
-The full working implementation is a single file:
-[`ui/index.html`](https://github.com/Kirbyy1/League-Highlights/blob/main/ui/index.html)
-in League Highlights.
+- **Web:** the full working implementation is a single file,
+  [`ui/index.html`](https://github.com/Kirbyy1/League-Highlights/blob/main/ui/index.html)
+  in League Highlights.
+- **Qt:** [`qt/quiet_ui.py`](qt/quiet_ui.py) is the kit,
+  [`qt/demo.py`](qt/demo.py) is a working app built with it (run
+  `python demo.py --shots DIR` to re-create the screenshots), and
+  [`qt/test_quiet_ui.py`](qt/test_quiet_ui.py) holds its tests.
