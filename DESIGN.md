@@ -47,7 +47,6 @@ component. Dark is the default; light follows the system setting.
   --muted: #9b9a95;       /* secondary text, resting icons */
   --faint: #6c6b67;       /* captions, metadata, placeholders */
   --accent: #5ed082;      /* the one accent: the logo's green */
-  --accent-2: #a8c858;    /* the logo's lime, only for the primary button fade */
   --accent-text: #0b1a10; /* text on an accent fill */
   --good: #5ed082;        /* success, OK status */
   --win: #4cb4ff;         /* a positive result (Victory), distinct from the accent */
@@ -61,7 +60,7 @@ component. Dark is the default; light follows the system setting.
   :root {
     --bg: #fafaf8; --side: #f1f0ec; --raise: #ffffff; --hover: #e9e8e3;
     --active: #e1e0da; --line: #e3e2dc; --text: #1c1c1e; --muted: #67665f;
-    --faint: #9a9990; --accent: #1f8f4d; --accent-2: #6f9a1c; --accent-text: #fff;
+    --faint: #9a9990; --accent: #1f8f4d; --accent-text: #fff;
     --good: #1f8f4d; --win: #1f7fd1; --bad: #c62f45; --warn: #a87a1c; --track: #d5d4cc;
     --shadow: 0 16px 48px rgba(40, 35, 20, .18);
     color-scheme: light;
@@ -73,8 +72,8 @@ How to use them:
 
 - Greys are slightly warm. Do not use pure black or pure white for surfaces
   or text.
-- Take the accent from the product's logo. To re-skin, change `--accent`,
-  `--accent-2` and `--accent-text` only.
+- Take the accent from the product's logo. To re-skin, change `--accent` and
+  `--accent-text` only.
 - If the accent is close to a status colour, give that status its own token,
   as `--win` does here, so selection and status never look the same.
 - `--good`, `--bad` and `--warn` are for status, never for decoration. Tinted
@@ -166,8 +165,7 @@ button { background: none; border: none; border-radius: 8px; padding: 6px 10px;
   transition: background .12s, color .12s, opacity .12s; }
 button:hover { background: var(--hover); color: var(--text); }
 button.on { background: var(--active); color: var(--text); }
-button.primary { background: linear-gradient(100deg, var(--accent-2), var(--accent) 70%);
-  color: var(--accent-text); font-weight: 600; }
+button.primary { background: var(--accent); color: var(--accent-text); font-weight: 600; }
 button.primary:hover { filter: brightness(1.08); }
 button.outline { border: 1px solid var(--line); color: var(--text); }
 button:disabled { opacity: .35; pointer-events: none; }
@@ -177,8 +175,7 @@ button:disabled { opacity: .35; pointer-events: none; }
 - **Ghost** (default): no fill, no border. Use for almost everything.
 - **Outline**: a 1px border. Use for secondary actions that sit next to
   content, such as "Fix" in a checklist row.
-- **Primary**: accent fill with the logo's two-colour fade. One per screen
-  at most. This is the only gradient on a control.
+- **Primary**: a solid accent fill, never a gradient. One per screen at most.
 - **Icon button**: 32×32px, icon centred, always with a tooltip.
 - **Destructive**: ghost or outline with `--bad` text; never a red fill.
 
@@ -509,7 +506,7 @@ log.
 | Show hierarchy with text size, weight and tone | Add borders and fills to create hierarchy |
 | Keep buttons ghost until hovered | Give every button a fill or outline |
 | Use `--good` / `--bad` only for real status | Colour things for decoration |
-| Use shadows only on floating surfaces | Put shadows or gradients on page content (the primary button fade is the one exception) |
+| Use shadows only on floating surfaces | Put shadows or gradients on page content or buttons |
 | Use system fonts and outline icons | Add web fonts, emoji or filled icon sets |
 | Use a boxed panel only for real emphasis, and sparingly | Box things by default |
 | Show time, cost and a plain summary before a job starts | Find out what it does after pressing Start |
@@ -696,11 +693,11 @@ QLineEdit[invalid="true"] { border-color: #e84057; }
 QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled { color: #6c6b67; }
 
 #PrimaryButton {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0.15, stop:0 #a8c858, stop:0.7 #5ed082);
+    background: #5ed082;
     color: #0b1a10; border: none; border-radius: 8px; padding: 7px 14px;
     font-family: "Segoe UI Semibold"; font-weight: normal;
 }
-#PrimaryButton:hover { background: qlineargradient(x1:0, y1:0, x2:1, y2:0.15, stop:0 #b5d366, stop:0.7 #6ddb90); }
+#PrimaryButton:hover { background: #6ddb90; }
 #PrimaryButton:disabled { background: #2a2a2e; color: #6c6b67; }
 #SecondaryButton { background: transparent; border: 1px solid #2e2e33; border-radius: 8px; padding: 6px 12px; }
 #SecondaryButton:hover { background: #2a2a2e; border-color: #3a3a40; }

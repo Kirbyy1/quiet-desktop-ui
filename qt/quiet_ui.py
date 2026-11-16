@@ -120,9 +120,7 @@ TOKENS = {
     "off": "#4a4946",         # disabled text and icons
     "log": "#c9c8c3",         # log text
     "accent": "#5ed082",
-    "accent2": "#a8c858",     # only for the primary button fade
     "accent_hover": "#6ddb90",
-    "accent2_hover": "#b5d366",
     "accent_pressed": "#4cbf71",
     "accent_text": "#0b1a10",
     "good": "#5ed082",
@@ -279,11 +277,10 @@ QCheckBox::indicator:checked { background-color: $accent; border-color: $accent;
 QCheckBox::indicator:disabled { border-color: $line; background-color: $bg; }
 
 #PrimaryButton {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0.15, stop:0 $accent2, stop:0.7 $accent);
+    background: $accent;
     color: $accent_text; border: none; border-radius: 8px; padding: 7px 14px; font-size: 14px;
     min-height: 18px; $strong; }
-#PrimaryButton:hover {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0.15, stop:0 $accent2_hover, stop:0.7 $accent_hover); }
+#PrimaryButton:hover { background: $accent_hover; }
 #PrimaryButton:pressed { background: $accent_pressed; }
 #PrimaryButton:disabled { background: $hover; color: $faint; }
 #SecondaryButton { background: transparent; color: $text; border: 1px solid $line; border-radius: 8px;
